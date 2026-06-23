@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍣 Sushi Roll - Pide tu Sushi</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="catalogo">
+
+    <header class="header-catalogo">
+        <div class="header-content">
+            <h1>🍣 Sushi Roll</h1>
+            <p>Hand Rolls y Sushi Fresco a tu gusto</p>
+        </div>
+    </header>
+
+    <section class="banner">
+        <p>🚚 Pedidos por WhatsApp - Envíos a domicilio</p>
+    </section>
+
+    <section class="filtros" id="filtros">
+        <button class="filtro-btn active" onclick="filtrarProductos('Todos')">Todos</button>
+        <button class="filtro-btn" onclick="filtrarProductos('Hand Roll')">🌯 Hand Rolls</button>
+        <button class="filtro-btn" onclick="filtrarProductos('Sushi')">🍣 Sushi</button>
+    </section>
+
+    <main class="catalogo-main">
+
+        <section class="productos-grid" id="catalogo"></section>
+
+        <aside class="carrito" id="carritoPanel">
+            <div class="carrito-header">
+                <h2>🛒 Tu Pedido</h2>
+                <button class="btn-cerrar-carrito" onclick="cerrarCarrito()">✕</button>
+            </div>
+            <div id="carritoItems">
+                <p class="vacio">Agrega productos desde el catálogo</p>
+            </div>
+            <div class="carrito-resumen" id="carritoResumen" style="display:none;">
+                <div class="carrito-divider"></div>
+                <div class="total">
+                    <span>Total:</span>
+                    <span id="carritoTotal">$0</span>
+                </div>
+                <textarea id="notasPedido" placeholder="Notas adicionales (ej: sin cebolla, extra palta...)"></textarea>
+                <input type="text" id="direccionPedido" placeholder="Dirección de entrega" required>
+                <button class="btn-whatsapp" id="btnWhatsApp">
+                    📱 Enviar Pedido por WhatsApp
+                </button>
+            </div>
+        </aside>
+
+    </main>
+
+    <div class="whatsapp-float" id="whatsappFloat">
+        <span>🛒 <span id="carritoCount">0</span> items</span>
+        <button class="btn-abrir-carrito" onclick="abrirCarrito()">Ver Pedido</button>
+    </div>
+
+    <script src="script-cliente.js"></script>
+
+</body>
+
+</html>
