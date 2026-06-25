@@ -169,11 +169,6 @@ function enviarWhatsApp() {
     const notas = document.getElementById('notasPedido').value;
     const direccion = document.getElementById('direccionPedido').value;
 
-    if (!direccion.trim()) {
-        alert('Ingresa tu dirección de entrega');
-        return;
-    }
-
     const total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
 
     let mensaje = '🍣 *Pedido Sushi Roll*\n\n';
@@ -183,7 +178,10 @@ function enviarWhatsApp() {
     }
 
     mensaje += `\n💰 *Total: ${formatoPrecio(total)}*`;
-    mensaje += `\n\n📍 *Dirección:* ${direccion}`;
+
+    if (direccion.trim()) {
+        mensaje += `\n\n📍 *Dirección:* ${direccion}`;
+    }
 
     if (notas.trim()) {
         mensaje += `\n📝 *Notas:* ${notas}`;
