@@ -1,13 +1,31 @@
+// =============================================
+// SERVIDOR PRINCIPAL - Sistema de Gestión Sushi Roll
+// =============================================
+// Este archivo contiene el servidor Express que expone
+// la API REST para gestionar productos, clientes y pedidos.
+// Se conecta a una base de datos PostgreSQL (local o en la nube).
+
+// Importar dependencias
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
+// =============================================
+// MIDDLEWARE (Configuración general del servidor)
+// =============================================
+app.use(cors());                  // Permite peticiones desde otros dominios (navegador)
+app.use(express.json());          // Permite recibir datos en formato JSON
+app.use(express.static('public')); // Sirve archivos estáticos (HTML, CSS, JS) desde /public
 
+// =============================================
+// FUNCIÓN AUXILIAR - Detectar tipo de producto
+// =============================================
+// Clasifica el producto según su nombre:
+// - Si contiene "hand roll" → Hand Roll
+// - Si contiene "sushi" → Sushi
+// - Si no matchea ninguno → General
 function detectarTipo(nombre) {
     const n = nombre.toLowerCase();
     if (n.includes('hand roll')) return 'Hand Roll';
@@ -15,8 +33,12 @@ function detectarTipo(nombre) {
     return 'General';
 }
 
-// ==================== PRODUCTOS ====================
+// =============================================
+// RUTAS DE PRODUCTOS (CRUD)
+// =============================================
+// CRUD = Create, Read, Update, Delete
 
+// GET /productos → Listar todos los productos
 app.get('/productos', async (req, res) => {
     try {
         const resultado = await pool.query('SELECT * FROM productos ORDER BY id_producto');
@@ -27,8 +49,10 @@ app.get('/productos', async (req, res) => {
     }
 });
 
+// POST /productos → Crear un nuevo producto
 app.post('/productos', async (req, res) => {
     try {
+        // req.body contiene los datos enviados desde el frontend
         const { nombre, tipo, descripcion, imagen, precio } = req.body;
         await pool.query(
             'INSERT INTO productos (nombre, tipo, descripcion, imagen, precio) VALUES ($1, $2, $3, $4, $5)',
@@ -41,9 +65,10 @@ app.post('/productos', async (req, res) => {
     }
 });
 
+// PUT /productos/:id → Actualizar un producto existente
 app.put('/productos/:id', async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params;       // Obtiene el ID de la URL
         const { nombre, tipo, descripcion, imagen, precio } = req.body;
         await pool.query(
             'UPDATE productos SET nombre = $1, tipo = $2, descripcion = $3, imagen = $4, precio = $5 WHERE id_producto = $6',
@@ -56,6 +81,7 @@ app.put('/productos/:id', async (req, res) => {
     }
 });
 
+// DELETE /productos/:id → Eliminar un producto
 app.delete('/productos/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -67,8 +93,11 @@ app.delete('/productos/:id', async (req, res) => {
     }
 });
 
-// ==================== CLIENTES ====================
+// =============================================
+// RUTAS DE CLIENTES (CRUD)
+// =============================================
 
+// GET /clientes → Listar todos los clientes
 app.get('/clientes', async (req, res) => {
     try {
         const resultado = await pool.query('SELECT * FROM clientes ORDER BY id_cliente');
@@ -79,6 +108,7 @@ app.get('/clientes', async (req, res) => {
     }
 });
 
+// POST /clientes → Crear un nuevo cliente
 app.post('/clientes', async (req, res) => {
     try {
         const { nombre, telefono, direccion } = req.body;
@@ -93,6 +123,7 @@ app.post('/clientes', async (req, res) => {
     }
 });
 
+// PUT /clientes/:id → Actualizar un cliente
 app.put('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -108,6 +139,7 @@ app.put('/clientes/:id', async (req, res) => {
     }
 });
 
+// DELETE /clientes/:id → Eliminar un cliente
 app.delete('/clientes/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -119,10 +151,14 @@ app.delete('/clientes/:id', async (req, res) => {
     }
 });
 
-// ==================== PEDIDOS ====================
+// =============================================
+// RUTAS DE PEDIDOS (CRUD)
+// =============================================
 
+// GET /pedidos → Listar todos los pedidos con nombre del cliente
 app.get('/pedidos', async (req, res) => {
     try {
+        // JOIN con clientes para mostrar el nombre del cliente en cada pedido
         const resultado = await pool.query(`
             SELECT p.*, c.nombre AS nombre_cliente
             FROM pedidos p
@@ -136,9 +172,11 @@ app.get('/pedidos', async (req, res) => {
     }
 });
 
+// POST /pedidos → Crear un nuevo pedido
 app.post('/pedidos', async (req, res) => {
     try {
         const { id_cliente, estado } = req.body;
+        // RETURNING id_pedido devuelve el ID generado automáticamente
         const resultado = await pool.query(
             'INSERT INTO pedidos (id_cliente, estado) VALUES ($1, $2) RETURNING id_pedido',
             [id_cliente, estado || 'Pendiente']
@@ -150,6 +188,7 @@ app.post('/pedidos', async (req, res) => {
     }
 });
 
+// PUT /pedidos/:id → Actualizar estado de un pedido
 app.put('/pedidos/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -165,10 +204,13 @@ app.put('/pedidos/:id', async (req, res) => {
     }
 });
 
+// DELETE /pedidos/:id → Eliminar un pedido y sus detalles
 app.delete('/pedidos/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        // Primero eliminar los detalles (por la foreign key)
         await pool.query('DELETE FROM detalle_pedido WHERE id_pedido = $1', [id]);
+        // Luego eliminar el pedido
         await pool.query('DELETE FROM pedidos WHERE id_pedido = $1', [id]);
         res.json({ mensaje: 'Pedido eliminado' });
     } catch (error) {
@@ -177,8 +219,12 @@ app.delete('/pedidos/:id', async (req, res) => {
     }
 });
 
-// ==================== DETALLE PEDIDO ====================
+// =============================================
+// RUTAS DE DETALLE PEDIDO
+// =============================================
+// El detalle pedido conecta pedidos con productos (tabla intermedia)
 
+// GET /pedidos/:id/detalle → Ver productos de un pedido
 app.get('/pedidos/:id/detalle', async (req, res) => {
     try {
         const { id } = req.params;
@@ -195,6 +241,7 @@ app.get('/pedidos/:id/detalle', async (req, res) => {
     }
 });
 
+// POST /pedidos/:id/detalle → Agregar producto a un pedido
 app.post('/pedidos/:id/detalle', async (req, res) => {
     try {
         const { id } = req.params;
@@ -210,6 +257,7 @@ app.post('/pedidos/:id/detalle', async (req, res) => {
     }
 });
 
+// DELETE /pedidos/:id/detalle/:detalleId → Eliminar producto de un pedido
 app.delete('/pedidos/:id/detalle/:detalleId', async (req, res) => {
     try {
         const { detalleId } = req.params;
@@ -221,6 +269,10 @@ app.delete('/pedidos/:id/detalle/:detalleId', async (req, res) => {
     }
 });
 
+// =============================================
+// INICIAR SERVIDOR
+// =============================================
+// Render asigna el puerto a través de la variable de entorno PORT
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor iniciado en puerto ${PORT}`);
