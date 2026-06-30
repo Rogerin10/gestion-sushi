@@ -10,6 +10,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const pool = require('./db');
 
 const app = express();
@@ -24,6 +25,12 @@ app.use(express.static('public')); // Sirve archivos estáticos (HTML, CSS, JS) 
 // =============================================
 // CONFIGURACIÓN DE MULTER (Subida de archivos)
 // =============================================
+// Crear carpeta uploads si no existe (necesario en Render porque el disco es efímero)
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Multer maneja la subida de archivos desde el formulario
 const storage = multer.diskStorage({
     // Carpeta donde se guardan las imágenes
