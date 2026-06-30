@@ -30,26 +30,6 @@ function formatoDescripcion(texto) {
 }
 
 // =============================================
-// VARIABLES PARA TABS DE IMAGEN
-// =============================================
-let tabImagenActual = 'archivo'; // 'archivo' o 'url'
-
-// Cambia entre tab de archivo y URL
-function cambiarTabImagen(tab) {
-    tabImagenActual = tab;
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
-
-    if (tab === 'archivo') {
-        document.querySelector('.tab-btn:first-child').classList.add('active');
-        document.getElementById('tabArchivo').style.display = 'block';
-    } else {
-        document.querySelector('.tab-btn:last-child').classList.add('active');
-        document.getElementById('tabUrl').style.display = 'block';
-    }
-}
-
-// =============================================
 // INICIALIZACIÓN
 // =============================================
 // Se ejecuta cuando la página carga completamente
@@ -63,65 +43,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const nombre = document.getElementById('nombre').value;
         const tipo = document.getElementById('tipo').value;
         const descripcion = document.getElementById('descripcion').value;
+        const imagen = document.getElementById('imagen').value;
         const precio = document.getElementById('precio').value;
 
-        // Verificar si hay imagen (archivo o URL)
-        const imagenArchivo = document.getElementById('imagenArchivo').files[0];
-        const imagenUrl = document.getElementById('imagen').value;
-        const usarArchivo = tabImagenActual === 'archivo' && imagenArchivo;
-
         try {
-            if (usarArchivo) {
-                // USAR ARCHIVO: Crear FormData para enviar archivo
-                const formData = new FormData();
-                formData.append('nombre', nombre);
-                formData.append('tipo', tipo || 'General');
-                formData.append('descripcion', descripcion);
-                formData.append('imagen', imagenArchivo);
-                formData.append('precio', precio);
-
-                if (productoEditando) {
-                    // Edición con nuevo archivo
-                    await fetch(`/productos/upload/${productoEditando}`, {
-                        method: 'PUT',
-                        body: formData
-                    });
-                } else {
-                    // Creación con archivo
-                    await fetch('/productos/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                }
+            if (productoEditando) {
+                // MODO EDICIÓN: Actualizar producto existente
+                await fetch(`/productos/${productoEditando}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, tipo, descripcion, imagen, precio })
+                });
+                // Limpiar modo edición
+                productoEditando = null;
+                document.getElementById('formTitle').textContent = '➕ Agregar Producto';
+                document.getElementById('btnCancelar').style.display = 'none';
             } else {
-                // USAR URL: Enviar como JSON
-                const imagen = imagenUrl || null;
-
-                if (productoEditando) {
-                    // MODO EDICIÓN: Actualizar producto existente
-                    await fetch(`/productos/${productoEditando}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nombre, tipo, descripcion, imagen, precio })
-                    });
-                } else {
-                    // MODO CREACIÓN: Agregar producto nuevo
-                    await fetch('/productos', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ nombre, tipo, descripcion, imagen, precio })
-                    });
-                }
+                // MODO CREACIÓN: Agregar producto nuevo
+                await fetch('/productos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, tipo, descripcion, imagen, precio })
+                });
             }
-
-            // Limpiar modo edición
-            productoEditando = null;
-            document.getElementById('formTitle').textContent = '➕ Agregar Producto';
-            document.getElementById('btnCancelar').style.display = 'none';
 
             // Limpiar formulario y recargar lista
             document.getElementById('formProducto').reset();
-            cambiarTabImagen('archivo'); // Volver a tab de archivo
             cargarProductos();
         } catch (error) {
             console.error('Error guardando producto:', error);
@@ -144,7 +91,6 @@ function cancelarEdicion() {
     document.getElementById('formProducto').reset();
     document.getElementById('formTitle').textContent = '➕ Agregar Producto';
     document.getElementById('btnCancelar').style.display = 'none';
-    cambiarTabImagen('archivo'); // Volver a tab de archivo
 }
 
 // =============================================
@@ -201,16 +147,8 @@ function editarProducto(id, nombre, tipo, descripcion, imagen, precio) {
     document.getElementById('nombre').value = nombre;
     document.getElementById('tipo').value = tipo;
     document.getElementById('descripcion').value = descripcion;
+    document.getElementById('imagen').value = imagen;
     document.getElementById('precio').value = precio;
-
-    // Si tiene imagen, mostrarla en el tab de URL
-    if (imagen) {
-        document.getElementById('imagen').value = imagen;
-        cambiarTabImagen('url');
-    } else {
-        cambiarTabImagen('archivo');
-    }
-
     document.getElementById('formTitle').textContent = '✏️ Editar Producto';
     document.getElementById('btnCancelar').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' }); // Sube al inicio de la página
