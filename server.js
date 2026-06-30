@@ -8,6 +8,8 @@
 // Importar dependencias
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
 const pool = require('./db');
 
 const app = express();
@@ -18,6 +20,41 @@ const app = express();
 app.use(cors());                  // Permite peticiones desde otros dominios (navegador)
 app.use(express.json());          // Permite recibir datos en formato JSON
 app.use(express.static('public')); // Sirve archivos estáticos (HTML, CSS, JS) desde /public
+
+// =============================================
+// CONFIGURACIÓN DE MULTER (Subida de archivos)
+// =============================================
+// Multer maneja la subida de archivos desde el formulario
+const storage = multer.diskStorage({
+    // Carpeta donde se guardan las imágenes
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'public', 'uploads'));
+    },
+    // Nombre único para cada archivo (timestamp + extensión original)
+    filename: (req, file, cb) => {
+        const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueName + path.extname(file.originalname));
+    }
+});
+
+// Filtro: solo permitir imágenes (jpg, png, gif, webp)
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+        cb(null, true);
+    } else {
+        cb(new Error('Solo se permiten imágenes (jpg, png, gif, webp)'), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Máximo 5MB
+    fileFilter: fileFilter
+});
 
 // =============================================
 // FUNCIÓN AUXILIAR - Detectar tipo de producto
@@ -49,7 +86,24 @@ app.get('/productos', async (req, res) => {
     }
 });
 
-// POST /productos → Crear un nuevo producto
+// POST /productos/upload → Crear producto con imagen subida
+app.post('/productos/upload', upload.single('imagen'), async (req, res) => {
+    try {
+        const { nombre, tipo, descripcion, precio } = req.body;
+        // Si se subió una imagen, usar su ruta; si no, usar null
+        const imagen = req.file ? `/uploads/${req.file.filename}` : null;
+        await pool.query(
+            'INSERT INTO productos (nombre, tipo, descripcion, imagen, precio) VALUES ($1, $2, $3, $4, $5)',
+            [nombre, tipo || 'General', descripcion, imagen, precio]
+        );
+        res.json({ mensaje: 'Producto agregado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error agregando producto' });
+    }
+});
+
+// POST /productos → Crear un nuevo producto (con URL de imagen)
 app.post('/productos', async (req, res) => {
     try {
         // req.body contiene los datos enviados desde el frontend
@@ -65,7 +119,25 @@ app.post('/productos', async (req, res) => {
     }
 });
 
-// PUT /productos/:id → Actualizar un producto existente
+// PUT /productos/upload/:id → Actualizar producto con imagen subida
+app.put('/productos/upload/:id', upload.single('imagen'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, tipo, descripcion, precio } = req.body;
+        // Solo actualizar imagen si se subió una nueva
+        const imagen = req.file ? `/uploads/${req.file.filename}` : req.body.imagenExistente;
+        await pool.query(
+            'UPDATE productos SET nombre = $1, tipo = $2, descripcion = $3, imagen = $4, precio = $5 WHERE id_producto = $6',
+            [nombre, tipo || 'General', descripcion, imagen, precio, id]
+        );
+        res.json({ mensaje: 'Producto actualizado' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error actualizando producto' });
+    }
+});
+
+// PUT /productos/:id → Actualizar un producto existente (con URL de imagen)
 app.put('/productos/:id', async (req, res) => {
     try {
         const { id } = req.params;       // Obtiene el ID de la URL

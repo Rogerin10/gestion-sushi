@@ -516,6 +516,65 @@ textarea{
     resize:vertical;
 }
 
+/* ==================== TABS DE IMAGEN ==================== */
+.imagen-opciones{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    padding:12px;
+    background:#f9f9f9;
+    border-radius:10px;
+    border:2px solid #ddd;
+}
+
+.imagen-label{
+    font-weight:bold;
+    font-size:0.9rem;
+    color:#333;
+}
+
+.imagen-tabs{
+    display:flex;
+    gap:5px;
+}
+
+.tab-btn{
+    flex:1;
+    padding:8px;
+    background:#e0e0e0;
+    border:2px solid #ccc;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:0.85rem;
+    font-weight:normal;
+    transition:0.2s;
+}
+
+.tab-btn.active{
+    background:#ffb703;
+    border-color:#ffb703;
+}
+
+.tab-btn:hover{
+    transform:none;
+}
+
+.tab-content{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+}
+
+.tab-content input[type="file"],
+.tab-content input[type="url"]{
+    width:100%;
+}
+
+.tab-content small{
+    color:#666;
+    font-size:0.8rem;
+}
+
 button{
     background:#ffb703;
     border:3px solid black;
